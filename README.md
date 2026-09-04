@@ -1,6 +1,6 @@
 # cgmon
 
-`cgmon` is a highly specialized, `vmstat`/`pidstat`-like CLI tool designed for Site Reliability Engineers (SREs). It monitors Linux **cgroups v2** metrics (CPU, Memory, I/O, PIDs, and PSI) in real-time, providing immediate visibility into container throttling and resource exhaustion.
+`cgmon` is a highly specialized, `pidstat`-like CLI tool designed for Site Reliability Engineers (SREs). It monitors Linux **cgroups v2** metrics (CPU, Memory, I/O, PIDs, and PSI) in real-time, providing immediate visibility into container throttling and resource exhaustion.
 
 ## Motivation
 
