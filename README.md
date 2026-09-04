@@ -16,7 +16,12 @@ In modern containerized environments (like Kubernetes and Docker), your applicat
 - **PSI Integration**: Seamlessly embeds modern Pressure Stall Information (`*.pressure`) metrics into the CPU, Memory, and I/O outputs.
 - **`pidstat` Visuals**: Utilizes alternating ANSI colors for high terminal readability when tracking dense rows of data.
 
-## Quickstart
+## Prerequisites
+
+- A Linux environment with **cgroups v2** mounted (default on modern distributions).
+- Python 3.6+
+
+## Installation & Quickstart
 
 Since `cgmon` is built with Python standard libraries, it requires absolutely zero dependencies!
 
@@ -25,7 +30,10 @@ Since `cgmon` is built with Python standard libraries, it requires absolutely ze
 git clone https://github.com/benkuotw/cgmon.git
 cd cgmon
 
-# 2. Monitor your current bash session's cgroup (default: cpu, memory)
+# 2. (Optional) Install system-wide
+sudo cp cgmon cgmon.py /usr/local/bin/
+
+# 3. Monitor your current bash session's cgroup (default: cpu, memory)
 ./cgmon -p $$ 1
 ```
 
@@ -55,6 +63,20 @@ cd cgmon
 **Monitor all metrics for a Kubernetes pod:**
 ```bash
 ./cgmon -c kubepods.slice/kubepods-burstable-pod123.slice -m cpu,memory,io,pids 1
+```
+
+## Testing with the Simulator
+
+This repository includes a `simulate_prod.py` script that artificially generates heavy CPU, Memory, and I/O load. It's the perfect way to see `cgmon` in action.
+
+You can use `systemd-run` to impose artificial cgroup limits on the simulator, and then watch `cgmon` report the throttling and OOM events!
+
+```bash
+# 1. Start the simulator with a 50% CPU limit and 150MB memory limit
+systemd-run --user --scope -p CPUQuota=50% -p MemoryMax=150M python3 simulate_prod.py
+
+# 2. In a second terminal, monitor the PID it outputs
+./cgmon -p <PID> -m cpu,memory,io,pids 1
 ```
 
 ## Critical Metric Definitions
