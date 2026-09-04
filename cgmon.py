@@ -183,7 +183,12 @@ def main():
     print_header()
     
     count = 0
+    rows_per_minute = max(1, int(60 / args.interval)) if args.interval > 0 else 60
+    
     while args.count == -1 or count < args.count:
+        if count > 0 and count % rows_per_minute == 0:
+            print_header()
+            
         now = datetime.datetime.now().strftime("%I:%M:%S %p")
         row = [f"{now:<11}"]
         
