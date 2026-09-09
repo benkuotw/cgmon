@@ -54,14 +54,19 @@ def format_count(count_str):
     except ValueError:
         return count_str
 
+_FILE_CACHE = {}
+
 def read_cgroup_file(cg_path, filename):
     filepath = os.path.join(cg_path, filename)
     if not os.path.exists(filepath):
         return ""
     try:
-        with open(filepath, 'r') as f:
-            return f.read().strip()
-    except Exception:
+        if filepath not in _FILE_CACHE:
+            _FILE_CACHE[filepath] = open(filepath, 'r')
+        f = _FILE_CACHE[filepath]
+        f.seek(0)
+        return f.read().strip()
+    except (IOError, OSError):
         return ""
 
 def parse_kv(content):
@@ -75,14 +80,13 @@ def parse_kv(content):
 
 def parse_pressure(content):
     if not content: return "0"
-    res = {}
     for line in content.splitlines():
         if line.startswith("some"):
             parts = line.split()
             for p in parts:
                 if p.startswith("total="):
-                    res["total"] = p.split("=")[1]
-    return res.get("total", "0")
+                    return p.split("=")[1]
+    return "0"
 
 def parse_io_stat(content):
     total = {'rbytes': 0, 'wbytes': 0, 'rios': 0, 'wios': 0}
@@ -108,7 +112,7 @@ def parse_io_weight(content):
     return parts[0] if parts else "100"
 
 def main():
-    parser = argparse.ArgumentParser(description="cgmon - vmstat-like tool for cgroups")
+    parser = argparse.ArgumentParser(description="cgmon - pidstat-like tool for cgroups")
     parser.add_argument("-p", "--pid", type=int, help="PID to resolve cgroup")
     parser.add_argument("-c", "--cgroup", type=str, help="Cgroup path directly (e.g. user.slice)")
     parser.add_argument("-m", "--metrics", type=str, default="cpu,memory", help="Comma-separated controllers (cpu,memory,io,pids)")
@@ -183,6 +187,7 @@ def main():
     print_header()
     
     count = 0
+    next_tick = time.time()
     
     while args.count == -1 or count < args.count:
         if count > 0 and count % 10 == 0:
@@ -259,7 +264,11 @@ def main():
         count += 1
         if count == args.count:
             break
-        time.sleep(args.interval)
+            
+        next_tick += args.interval
+        sleep_time = next_tick - time.time()
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 
 if __name__ == "__main__":
     try:
