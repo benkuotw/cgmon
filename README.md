@@ -11,6 +11,7 @@ In modern containerized environments (like Kubernetes and Docker), your applicat
 ## Features
 
 - **Smart Resolution**: Target a specific process by its PID (`-p`), and `cgmon` will automatically resolve and monitor its underlying cgroup.
+- **Interval Deltas**: Automatically calculates the difference for cumulative metrics (like CPU usage, OOM kills, and PSI) so you see exactly what happened *during the interval* rather than since boot.
 - **Dynamic Modular Columns**: Select exactly which metrics you want to monitor (`-m cpu,memory,io,pids`).
 - **Human-Readable Parsing**: Automatically converts raw microsecond counters and byte sizes into readable units (e.g., `10ms`, `1.5G`).
 - **PSI Integration**: Seamlessly embeds modern Pressure Stall Information (`*.pressure`) metrics into the CPU, Memory, and I/O outputs.
@@ -81,11 +82,13 @@ systemd-run --user --scope -p CPUQuota=50% -p MemoryMax=150M python3 simulate_pr
 
 ## Critical Metric Definitions
 
-*   **`nr_thr` / `thr_us` (CPU)**: Number of times and total duration the process was throttled by the kernel for exceeding its CPU limit. A high number here explains random latency spikes.
-*   **`anon` (Memory)**: Anonymous memory (heap/stack). This is the true footprint of your application.
-*   **`mjflt` (Memory)**: Major page faults. Rapid climbing means your application is thrashing disk/swap.
-*   **`psi` (All)**: Pressure Stall Information. The total time processes in the cgroup were completely stalled waiting for CPU, Memory, or I/O.
-*   **`oom` (Memory)**: The exact number of times the kernel's OOM killer terminated a process in this cgroup.
+*(Note: Unless otherwise specified as an absolute gauge, `cgmon` displays the **delta** of these metrics over the given polling interval).*
+
+*   **`nr_thr` / `thr_us` (CPU)**: Number of times and total duration the process was throttled by the kernel during the interval. A high number here explains random latency spikes.
+*   **`anon` (Memory)**: [Absolute] Anonymous memory (heap/stack). This is the true instantaneous footprint of your application.
+*   **`mjflt` (Memory)**: Major page faults occurring during the interval. Rapid climbing means your application is thrashing disk/swap.
+*   **`psi` (All)**: Pressure Stall Information. The time processes in the cgroup were completely stalled waiting for CPU, Memory, or I/O during the interval.
+*   **`oom` (Memory)**: The number of times the kernel's OOM killer terminated a process in this cgroup during the interval.
 
 ## License
 
