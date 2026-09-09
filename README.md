@@ -57,7 +57,7 @@ sudo cp cgmon cgmon.py /usr/local/bin/
 
 **Monitor CPU and I/O for a specific process every 2 seconds:**
 ```bash
-./cgmon -p 1042 -m cpu,io 2
+./cgmon -p 1234 -m cpu,io 2
 ```
 
 **Monitor all metrics for a Kubernetes pod:**
