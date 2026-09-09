@@ -155,8 +155,6 @@ def main():
         'io': [
             ('rbytes', 8, format_bytes), ('wbytes', 8, format_bytes),
             ('rios', 7, format_count), ('wios', 7, format_count),
-            ('rbps', 7, format_bytes), ('wbps', 7, format_bytes),
-            ('riops', 7, format_count), ('wiops', 7, format_count),
             ('weight', 6, format_count), ('psi', 7, format_usec)
         ],
         'pids': [
@@ -238,10 +236,6 @@ def main():
                 'wbytes': io_stat.get('wbytes', '0'),
                 'rios': io_stat.get('rios', '0'),
                 'wios': io_stat.get('wios', '0'),
-                'rbps': 'max',
-                'wbps': 'max',
-                'riops': 'max',
-                'wiops': 'max',
                 'weight': parse_io_weight(read_cgroup_file(cg_path, "io.weight")),
                 'psi': parse_pressure(read_cgroup_file(cg_path, "io.pressure"))
             }
@@ -292,6 +286,8 @@ def main():
         sleep_time = next_tick - time.time()
         if sleep_time > 0:
             time.sleep(sleep_time)
+        else:
+            next_tick = time.time()
 
 if __name__ == "__main__":
     try:
