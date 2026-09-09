@@ -101,14 +101,11 @@ def parse_io_stat(content):
     return {k: str(v) for k, v in total.items()}
 
 def parse_io_weight(content):
-    if not content: return "100" # default
+    if not content: return "100"
+    for line in content.splitlines():
+        if line.startswith("default "):
+            return line.split()[1]
     parts = content.split()
-    if "default" in parts:
-        try:
-            idx = parts.index("default")
-            return parts[idx+1]
-        except:
-            pass
     return parts[0] if parts else "100"
 
 def main():
@@ -124,8 +121,13 @@ def main():
     if args.pid:
         try:
             with open(f"/proc/{args.pid}/cgroup", "r") as f:
-                cgroup_line = f.read().strip()
-                cg_suffix = cgroup_line.split(":")[-1].lstrip("/")
+                cg_suffix = ""
+                for line in f:
+                    if line.startswith("0::"):
+                        cg_suffix = line.strip().split(":")[-1].lstrip("/")
+                        break
+                if not cg_suffix:
+                    raise Exception("Could not find cgroups v2 (0::) entry")
                 cg_path = os.path.join(cg_path, cg_suffix)
         except Exception as e:
             print(f"Error resolving PID: {e}")
@@ -193,31 +195,32 @@ def main():
         if count > 0 and count % 10 == 0:
             print_header()
             
+        if not os.path.exists(cg_path):
+            print(f"\n[!] Target cgroup deleted ({cg_path}). Exiting.")
+            sys.exit(0)
+
         now = datetime.datetime.now().strftime("%I:%M:%S %p")
         row = [f"{now:<11}"]
         
-        cpu_stat = parse_kv(read_cgroup_file(cg_path, "cpu.stat"))
-        mem_stat = parse_kv(read_cgroup_file(cg_path, "memory.stat"))
-        mem_events = parse_kv(read_cgroup_file(cg_path, "memory.events"))
-        io_stat = parse_io_stat(read_cgroup_file(cg_path, "io.stat"))
-        
-        cpu_max = read_cgroup_file(cg_path, "cpu.max")
-        if cpu_max: cpu_max = cpu_max.split()[0]
-        
-        mem_max = read_cgroup_file(cg_path, "memory.max")
-        io_weight = parse_io_weight(read_cgroup_file(cg_path, "io.weight"))
-        
-        DATA = {
-            'cpu': {
+        DATA = {}
+        if 'cpu' in modules:
+            cpu_stat = parse_kv(read_cgroup_file(cg_path, "cpu.stat"))
+            cpu_max = read_cgroup_file(cg_path, "cpu.max")
+            DATA['cpu'] = {
                 'usage': cpu_stat.get('usage_usec', '0'),
                 'usr': cpu_stat.get('user_usec', '0'),
                 'sys': cpu_stat.get('system_usec', '0'),
                 'nr_thr': cpu_stat.get('nr_throttled', '0'),
                 'thr_us': cpu_stat.get('throttled_usec', '0'),
-                'max': cpu_max or 'max',
+                'max': cpu_max.split()[0] if cpu_max else 'max',
                 'psi': parse_pressure(read_cgroup_file(cg_path, "cpu.pressure"))
-            },
-            'memory': {
+            }
+            
+        if 'memory' in modules:
+            mem_stat = parse_kv(read_cgroup_file(cg_path, "memory.stat"))
+            mem_events = parse_kv(read_cgroup_file(cg_path, "memory.events"))
+            mem_max = read_cgroup_file(cg_path, "memory.max")
+            DATA['memory'] = {
                 'cur': read_cgroup_file(cg_path, "memory.current") or '0',
                 'anon': mem_stat.get('anon', '0'),
                 'file': mem_stat.get('file', '0'),
@@ -225,8 +228,11 @@ def main():
                 'oom': mem_events.get('oom_kill', '0'),
                 'max': mem_max or 'max',
                 'psi': parse_pressure(read_cgroup_file(cg_path, "memory.pressure"))
-            },
-            'io': {
+            }
+            
+        if 'io' in modules:
+            io_stat = parse_io_stat(read_cgroup_file(cg_path, "io.stat"))
+            DATA['io'] = {
                 'rbytes': io_stat.get('rbytes', '0'),
                 'wbytes': io_stat.get('wbytes', '0'),
                 'rios': io_stat.get('rios', '0'),
@@ -235,14 +241,15 @@ def main():
                 'wbps': 'max',
                 'riops': 'max',
                 'wiops': 'max',
-                'weight': io_weight,
+                'weight': parse_io_weight(read_cgroup_file(cg_path, "io.weight")),
                 'psi': parse_pressure(read_cgroup_file(cg_path, "io.pressure"))
-            },
-            'pids': {
+            }
+            
+        if 'pids' in modules:
+            DATA['pids'] = {
                 'cur': read_cgroup_file(cg_path, "pids.current") or '0',
                 'max': read_cgroup_file(cg_path, "pids.max") or 'max'
             }
-        }
         
         color_idx = 0
         for mod in modules:
