@@ -190,6 +190,7 @@ def main():
     
     count = 0
     next_tick = time.time()
+    PREV_DATA = {}
     
     while args.count == -1 or count < args.count:
         if count > 0 and count % 10 == 0:
@@ -251,6 +252,8 @@ def main():
                 'max': read_cgroup_file(cg_path, "pids.max") or 'max'
             }
         
+        CUMULATIVE = {'usage', 'usr', 'sys', 'nr_thr', 'thr_us', 'psi', 'mjflt', 'oom', 'rbytes', 'wbytes', 'rios', 'wios'}
+        
         color_idx = 0
         for mod in modules:
             if mod not in COL_DEF: continue
@@ -260,11 +263,24 @@ def main():
             
             cols = []
             for name, w, fmt_fn in COL_DEF[mod]:
-                raw_val = DATA[mod].get(name, '0')
-                formatted = fmt_fn(raw_val)
+                raw_str = DATA[mod].get(name, '0')
+                
+                if name in CUMULATIVE:
+                    try:
+                        curr_val = int(raw_str)
+                        prev_val = int(PREV_DATA.get(mod, {}).get(name, '0'))
+                        val = max(0, curr_val - prev_val)
+                        formatted = fmt_fn(str(val))
+                    except ValueError:
+                        formatted = fmt_fn(raw_str)
+                else:
+                    formatted = fmt_fn(raw_str)
+                    
                 cols.append(f"{formatted:>{w}}")
             row.append(f"{color}{' '.join(cols)}{COLOR_RESET}")
             
+        PREV_DATA = DATA
+        
         print(" ".join(row))
         sys.stdout.flush()
         
