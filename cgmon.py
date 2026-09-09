@@ -139,7 +139,7 @@ def main():
         print(f"Error: Cgroup path {cg_path} does not exist.")
         sys.exit(1)
 
-    modules = args.metrics.split(",")
+    modules = [m.strip() for m in args.metrics.split(",")]
     
     COL_DEF = {
         'cpu': [
