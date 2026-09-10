@@ -71,11 +71,16 @@ def format_count(count_str):
 def format_cpu_max(val_str):
     return str(val_str)
 
+_FILE_CACHE = {}
+
 def read_cgroup_file(cg_path, filename):
     filepath = os.path.join(cg_path, filename)
     try:
-        with open(filepath, 'r') as f:
-            return f.read().strip()
+        if filepath not in _FILE_CACHE:
+            _FILE_CACHE[filepath] = open(filepath, 'r')
+        f = _FILE_CACHE[filepath]
+        f.seek(0)
+        return f.read().strip()
     except (FileNotFoundError, IOError, OSError):
         return ""
 
