@@ -32,6 +32,11 @@ def io_spammer():
                 f.write(data)
                 f.flush()
                 os.fsync(f.fileno())
+                # Invalidate page cache so subsequent read generates real disk block I/O
+                try:
+                    os.posix_fadvise(f.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+                except (AttributeError, OSError):
+                    pass
                 # Read it back to generate read I/O
                 f.seek(0)
                 _ = f.read()
@@ -69,7 +74,9 @@ if __name__ == "__main__":
         while True:
             for name, p in list(workers.items()):
                 if not p.is_alive():
-                    print(f"\n[!] Worker '{name}' died (PID: {p.pid}). Likely OOM Killed!")
+                    exit_code = p.exitcode
+                    cause = "OOM Killed (SIGKILL)" if exit_code == -9 else f"Exited with code {exit_code}"
+                    print(f"\n[!] Worker '{name}' died (PID: {p.pid}). Reason: {cause}")
                     print(f"[*] Respawning '{name}' in 3 seconds to generate more events...")
                     time.sleep(3)
                     
@@ -88,3 +95,5 @@ if __name__ == "__main__":
         print("\n[!] Stopping Simulator...")
         for name, p in workers.items():
             p.terminate()
+        for name, p in workers.items():
+            p.join(timeout=1)
