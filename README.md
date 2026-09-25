@@ -2,6 +2,10 @@
 
 `cgmon` is a highly specialized, `pidstat`-like CLI tool designed for Site Reliability Engineers (SREs). It monitors Linux **cgroups v2** metrics (CPU, Memory, I/O, PIDs, and PSI) in real-time, providing immediate visibility into container throttling and resource exhaustion.
 
+![cgmon watching the demo container: CPU pinned at its 0.5-core limit, memory climbing to 150M, OOM kills and I/O pressure](docs/cgmon-demo.svg)
+
+*Real output from `./demo.sh observe 1` (20 seconds, 1s interval). The container is limited to 0.5 CPU and 150M memory. CPU sits at 50% with `thr%` at 100 (throttled in every period). Memory `cur` climbs toward the 150M `max` until the OOM killer fires (`oom` = 1 at 23:30:04 and 23:30:17), and memory and I/O `psi` show the stall time while the pressure lasts.*
+
 ## Motivation
 
 In modern containerized environments (like Kubernetes and Docker), your application's `resources.limits` are translated directly into underlying Linux cgroup restrictions. When containers experience mysterious latency spikes or sudden `OOMKilled` crashes, the answers are often hidden deep within `/sys/fs/cgroup/`. 
