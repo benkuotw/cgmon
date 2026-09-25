@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Resolve symlinks so cgmon can be linked into a bin directory away from cgmon.py
+DIR="$( dirname "$( readlink -f "${BASH_SOURCE[0]}" )" )"
+exec python3 "$DIR/cgmon.py" "$@"

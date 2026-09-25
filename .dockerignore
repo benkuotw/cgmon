@@ -1,0 +1,8 @@
+.git
+__pycache__
+tests
+cgmon
+cgmon.py
+demo.sh
+*.md
+LICENSE
