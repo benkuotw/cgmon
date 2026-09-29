@@ -25,7 +25,7 @@ In modern containerized environments (like Kubernetes and Docker), your applicat
 ## Prerequisites
 
 - A Linux environment with **cgroups v2** mounted (default on modern distributions).
-- Python 3.9+
+- Python 3.10+
 
 ## Installation & Quickstart
 
