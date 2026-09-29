@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-24.04  # pinned: Python 3.9 may be unavailable on newer images
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.9", "3.13"]
